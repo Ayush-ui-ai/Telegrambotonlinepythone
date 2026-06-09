@@ -11,7 +11,7 @@ import database as db
 from account_manager import AccountManager
 
 # ---------- CONFIG ----------
-BOT_TOKEN = "8603582567:AAE5VvKblyMRbHhsCD1s1MtaGOonGjL1uUk"   # CHANGE
+BOT_TOKEN = "8603582567:AAE5VvKblyMRbHhsCD1s1MtaGOonGjL1uUk"
 API_ID = 33534748
 API_HASH = "0b37ba2e1964b43999dc834ccf9b1a1b"
 OWNER_ID = 6871652449
@@ -23,11 +23,11 @@ LINK, DELAY, COUNT = range(3)
 PHONE, CODE, PASSWORD = range(3, 6)
 ENGAGE_CHOICE, ENGAGE_LINK, ENGAGE_MSG_ID, ENGAGE_EMOJI = range(6, 10)
 
-# ---------- TASK QUEUE (only one join at a time) ----------
+# ---------- TASK QUEUE ----------
 task_queue = asyncio.Queue()
 is_processing = False
 
-# ---------- AUTHORIZATION (fixes callback timeout) ----------
+# ---------- AUTHORIZATION ----------
 def authorized_only(func):
     async def wrapper(update, context):
         if update.callback_query:
@@ -432,11 +432,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⛔ Unauthorized. Only owner/admins can use this bot.")
 
-# ---------- MAIN ----------
-async def main():
+# ---------- BOT SETUP FUNCTION ----------
+async def setup_bot():
     await db.init_db()
     await account_manager.start_all_accounts()
+    
     app = Application.builder().token(BOT_TOKEN).build()
+    
     join_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(button_handler, pattern="^joiner_mode$")],
         states={
@@ -464,6 +466,7 @@ async def main():
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
+    
     app.add_handler(join_conv)
     app.add_handler(add_conv)
     app.add_handler(engage_conv)
@@ -473,10 +476,5 @@ async def main():
     app.add_handler(CommandHandler("rmadmin", remove_admin_command))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(CallbackQueryHandler(engagement_submenu, pattern="^engage_"))
-    print("🤖 Bot running...")
-    await app.run_polling()
-
-if __name__ == "__main__":
-    import nest_asyncio
-    nest_asyncio.apply()
-    asyncio.get_event_loop().run_until_complete(main())
+    
+    return app
